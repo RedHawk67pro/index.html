@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>TEAM Red - Vendeur Prototype</title>
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<style>
+body {background:#0f172a;color:white;font-family:Arial;text-align:center;}
+.box {background:#1e293b;padding:20px;border-radius:15px;width:450px;margin:auto;margin-top:20px;}
+button {padding:10px 20px;border:none;border-radius:10px;background:red;color:white;margin-top:10px;cursor:pointer;}
+#clientInfo {background:#334155;padding:10px;border-radius:10px;margin-top:10px;}
+#transactions {background:#334155;padding:10px;border-radius:10px;margin-top:10px;text-align:left;max-height:150px;overflow:auto;}
+</style>
+</head>
+<body>
+
+<h1>🔥 Vendeur TEAM Red 🔥</h1>
+
+<div class="box">
+<h2>Scanner QR Client</h2>
+<button onclick="startScanner()">Scanner QR</button>
+<p id="scanResult">Aucun client scanné</p>
+<div id="clientInfo"></div>
+
+<h2>Transactions</h2>
+<div id="transactions"></div>
+</div>
+
+<script>
+let users = JSON.parse(localStorage.getItem('users')||'[]');
+let transactions = JSON.parse(localStorage.getItem('transactions')||'[]');
+let currentClient = null;
+
+function saveUsers(){ localStorage.setItem('users', JSON.stringify(users)); }
+function saveTransactions(){ localStorage.setItem('transactions', JSON.stringify(transactions)); updateTransactions(); }
+
+function startScanner(){
+  let qrScanner = new Html5Qrcode("scanResult");
+  qrScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (decodedText)=>{
+    let parts = decodedText.split('|');
+    let email = parts[0];
+    currentClient = users.find(u=>u.email===email);
+    if(currentClient){
+      document.getElementById('scanResult').innerText=`Client trouvé: ${currentClient.name}`;
+      updateClientInfo();
+    }else{
+      document.getElementById('scanResult').innerText='Client inconnu';
+      document.getElementById('clientInfo').innerHTML='';
+    }
+  });
+}
+
+function updateClientInfo(){
+  let div = document.getElementById('clientInfo');
+  div.innerHTML=`<strong>Nom:</strong> ${currentClient.name}<br>
+                   <strong>Email:</strong> ${currentClient.email}<br>
+                   <strong>Points:</strong> ${currentClient.points}<br>
+                   <strong>QR paiement:</strong><br>`;
+  if(currentClient.cardQR){
+    let canvas = document.createElement('canvas');
+    QRCode.toCanvas(canvas, currentClient.cardQR);
+    div.appendChild(canvas);
+  }
+  div.innerHTML+=`<br><button onclick='payClient()'>Valider paiement 10 points</button>`;
+}
+
+function payClient(){
+  if(!currentClient) return;
+  if(currentClient.points<10){ alert('Solde insuffisant'); return; }
+  currentClient.points -= 10;
+  users = users.map(u=>u.email===currentClient.email?currentClient:u);
+  saveUsers();
+
+  transactions.push({client:currentClient.name,email:currentClient.email,points:10,date:new Date().toLocaleString()});
+  saveTransactions();
+  updateClientInfo();
+  alert('Paiement effectué');
+}
+
+function updateTransactions(){
+  let div = document.getElementById('transactions');
+  div.innerHTML='';
+  transactions.forEach((t,i)=>{
+    div.innerHTML+=`${i+1}. ${t.client} | ${t.points} points | ${t.date} <button onclick='deleteTransaction(${i})'>Supprimer</button><br>`;
+  });
+}
+
+function deleteTransaction(i){
+  transactions.splice(i,1);
+  saveTransactions();
+}
+
+updateTransactions();
+</script>
+
+</body>
+</html>
