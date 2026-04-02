@@ -2,96 +2,128 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>TEAM Red - Vendeur Prototype</title>
-<script src="https://unpkg.com/html5-qrcode"></script>
+<title>TEAM Red - Client Corrigé</title>
 <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 <style>
 body {background:#0f172a;color:white;font-family:Arial;text-align:center;}
-.box {background:#1e293b;padding:20px;border-radius:15px;width:450px;margin:auto;margin-top:20px;}
+.box {background:#1e293b;padding:20px;border-radius:15px;width:400px;margin:auto;margin-top:20px;}
+input {padding:10px;border-radius:10px;border:none;margin-top:10px;width:90%;}
 button {padding:10px 20px;border:none;border-radius:10px;background:red;color:white;margin-top:10px;cursor:pointer;}
-#clientInfo {background:#334155;padding:10px;border-radius:10px;margin-top:10px;}
-#transactions {background:#334155;padding:10px;border-radius:10px;margin-top:10px;text-align:left;max-height:150px;overflow:auto;}
+canvas {margin-top:10px;}
+img {width:80px;height:80px;border-radius:50%;margin-top:10px;object-fit:cover;}
+#history {background:#334155;padding:10px;border-radius:10px;margin-top:10px;text-align:left;max-height:150px;overflow:auto;}
 </style>
 </head>
 <body>
 
-<h1>🔥 Vendeur TEAM Red 🔥</h1>
+<h1>🔥 CLIENT TEAM Red Corrigé 🔥</h1>
 
 <div class="box">
-<h2>Scanner QR Client</h2>
-<button onclick="startScanner()">Scanner QR</button>
-<p id="scanResult">Aucun client scanné</p>
-<div id="clientInfo"></div>
+<h2>Créer un compte</h2>
+<input type="text" id="name" placeholder="Nom">
+<input type="email" id="email" placeholder="Email">
+<input type="password" id="password" placeholder="Mot de passe">
+<button onclick="register()">S'inscrire</button>
 
-<h2>Transactions</h2>
-<div id="transactions"></div>
+<h2>Connexion</h2>
+<input type="email" id="loginEmail" placeholder="Email">
+<input type="password" id="loginPassword" placeholder="Mot de passe">
+<button onclick="login()">Se connecter</button>
+</div>
+
+<div class="box" id="clientArea" style="display:none;">
+<h2>Mon profil</h2>
+<img id="avatar" src="">
+<input type="file" onchange="uploadAvatar(event)">
+<p id="info"></p>
+<button onclick="showQR()">📱 QR fidélité</button>
+<canvas id="qr"></canvas>
+<h2>💳 Carte bancaire factice</h2>
+<input type="text" id="cardNumber" placeholder="Numéro carte">
+<input type="text" id="cardExp" placeholder="MM/AA">
+<input type="text" id="cardCVV" placeholder="CVV">
+<button onclick="generateCard()">Générer carte</button>
+<button onclick="showPayQR()">QR paiement</button>
+<canvas id="payQR"></canvas>
+<h3>Historique</h3>
+<div id="history"></div>
 </div>
 
 <script>
-let users = JSON.parse(localStorage.getItem('users')||'[]');
-let transactions = JSON.parse(localStorage.getItem('transactions')||'[]');
-let currentClient = null;
+if(!localStorage.getItem('users')) localStorage.setItem('users', JSON.stringify([]));
+let users = JSON.parse(localStorage.getItem('users'));
+let currentUser = null;
 
-function saveUsers(){ localStorage.setItem('users', JSON.stringify(users)); }
-function saveTransactions(){ localStorage.setItem('transactions', JSON.stringify(transactions)); updateTransactions(); }
+function save(){ localStorage.setItem('users', JSON.stringify(users)); }
 
-function startScanner(){
-  let qrScanner = new Html5Qrcode("scanResult");
-  qrScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (decodedText)=>{
-    let parts = decodedText.split('|');
-    let email = parts[0];
-    currentClient = users.find(u=>u.email===email);
-    if(currentClient){
-      document.getElementById('scanResult').innerText=`Client trouvé: ${currentClient.name}`;
-      updateClientInfo();
-    }else{
-      document.getElementById('scanResult').innerText='Client inconnu';
-      document.getElementById('clientInfo').innerHTML='';
-    }
-  });
+function register(){
+  const name=document.getElementById('name').value.trim();
+  const email=document.getElementById('email').value.trim();
+  const pass=document.getElementById('password').value.trim();
+  if(!name||!email||!pass){alert('Remplis tous les champs'); return;}
+  if(users.some(u=>u.email===email)){alert('Email déjà utilisé'); return;}
+
+  let user = {name,email,pass,points:100,avatar:'',history:[],cardQR:''};
+  users.push(user);
+  save();
+  alert('Compte créé avec succès avec 100 points');
 }
 
-function updateClientInfo(){
-  let div = document.getElementById('clientInfo');
-  div.innerHTML=`<strong>Nom:</strong> ${currentClient.name}<br>
-                   <strong>Email:</strong> ${currentClient.email}<br>
-                   <strong>Points:</strong> ${currentClient.points}<br>
-                   <strong>QR paiement:</strong><br>`;
-  if(currentClient.cardQR){
-    let canvas = document.createElement('canvas');
-    QRCode.toCanvas(canvas, currentClient.cardQR);
-    div.appendChild(canvas);
-  }
-  div.innerHTML+=`<br><button onclick='payClient()'>Valider paiement 10 points</button>`;
+function login(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pass=document.getElementById('loginPassword').value.trim();
+  currentUser=users.find(u=>u.email===email && u.pass===pass);
+  if(!currentUser){alert('Email ou mot de passe incorrect'); return;}
+  document.getElementById('clientArea').style.display='block';
+  updateUI();
 }
 
-function payClient(){
-  if(!currentClient) return;
-  if(currentClient.points<10){ alert('Solde insuffisant'); return; }
-  currentClient.points -= 10;
-  users = users.map(u=>u.email===currentClient.email?currentClient:u);
-  saveUsers();
-
-  transactions.push({client:currentClient.name,email:currentClient.email,points:10,date:new Date().toLocaleString()});
-  saveTransactions();
-  updateClientInfo();
-  alert('Paiement effectué');
+function updateUI(){
+  document.getElementById('info').innerText=`Nom: ${currentUser.name} | Email: ${currentUser.email} | Points: ${currentUser.points}`;
+  if(currentUser.avatar) document.getElementById('avatar').src=currentUser.avatar;
+  let h=document.getElementById('history'); h.innerHTML='';
+  currentUser.history.forEach(e=>{h.innerHTML+="- "+e+"<br>";});
 }
 
-function updateTransactions(){
-  let div = document.getElementById('transactions');
-  div.innerHTML='';
-  transactions.forEach((t,i)=>{
-    div.innerHTML+=`${i+1}. ${t.client} | ${t.points} points | ${t.date} <button onclick='deleteTransaction(${i})'>Supprimer</button><br>`;
-  });
+function uploadAvatar(e){
+  if(!currentUser) return;
+  const reader=new FileReader();
+  reader.onload=function(){
+    currentUser.avatar=reader.result;
+    users=users.map(u=>u.email===currentUser.email?currentUser:u);
+    save();
+    updateUI();
+  };
+  reader.readAsDataURL(e.target.files[0]);
 }
 
-function deleteTransaction(i){
-  transactions.splice(i,1);
-  saveTransactions();
+function showQR(){
+  if(!currentUser) return;
+  QRCode.toCanvas(document.getElementById('qr'), currentUser.email);
 }
 
-updateTransactions();
+function random(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+
+function generateCard(){
+  let num=''; for(let i=0;i<16;i++){num+=random(0,9);if((i+1)%4===0 && i<15) num+=' ';}
+  document.getElementById('cardNumber').value=num;
+  let m=random(1,12).toString().padStart(2,'0'); let y=random(24,30);
+  document.getElementById('cardExp').value=m+'/'+y;
+  document.getElementById('cardCVV').value=random(100,999);
+}
+
+function showPayQR(){
+  if(!currentUser) return;
+  const num=document.getElementById('cardNumber').value;
+  const exp=document.getElementById('cardExp').value;
+  const cvv=document.getElementById('cardCVV').value;
+  const data=`${currentUser.email}|${num}|${exp}|${cvv}`;
+  QRCode.toCanvas(document.getElementById('payQR'),data);
+  currentUser.cardQR=data;
+  currentUser.history.push('QR paiement généré');
+  users=users.map(u=>u.email===currentUser.email?currentUser:u);
+  save(); updateUI();
+}
 </script>
 
 </body>
