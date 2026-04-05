@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MASRP Chat en direct</title>
+<style>
+body { font-family: Arial; background:#1e1e1e; color:#f0f0f0; display:flex; flex-direction:column; align-items:center; padding:20px;}
+header{width:100%; max-width:900px; display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;}
+h1{color:#ff4500;margin:0;}
+button#loginBtn{padding:10px 20px;background:#ff4500;color:#fff;border:none;border-radius:5px;cursor:pointer;}
+button#loginBtn:hover{background:#ff6347;}
+#chat{width:100%; max-width:500px; height:400px; background:#333; padding:10px; overflow-y:auto; border-radius:5px; margin-bottom:10px;}
+.message{margin:5px 0;}
+.chef{color:#00ffcc; font-weight:bold;}
+.user{color:#ffa500;}
+input[type="text"]{width:80%; padding:10px; border-radius:5px; border:none;}
+button#sendBtn{padding:10px 15px;border-radius:5px;border:none;background:#ff4500;color:#fff;cursor:pointer;}
+button#sendBtn:hover{background:#ff6347;}
+</style>
+</head>
+<body>
+<header>
+<h1>MASRP Chat en direct</h1>
+<button id="loginBtn" onclick="login()">Se connecter comme Chef</button>
+</header>
+
+<div id="chat"></div>
+<input type="text" id="messageInput" placeholder="Écris ton message...">
+<button id="sendBtn" onclick="sendMessage()">Envoyer</button>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+  // 🔹 Config Firebase avec ton projet
+  const firebaseConfig = {
+    apiKey: "AIzaSyBpJvA6m4KsjuXA6JdI4lqv6AvZlPPS9ys",
+    authDomain: "masrpchat-ea945.firebaseapp.com",
+    databaseURL: "https://masrpchat-ea945-default-rtdb.firebaseio.com", // très important !
+    projectId: "masrpchat-ea945",
+    storageBucket: "masrpchat-ea945.firebasestorage.app",
+    messagingSenderId: "283754539804",
+    appId: "1:283754539804:web:12d8620c234a9eefb6a8d9"
+  };
+
+  // 🔹 Initialiser Firebase
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  const chat = document.getElementById('chat');
+  const input = document.getElementById('messageInput');
+  let isChef = false;
+
+  // 🔹 Connexion Chef
+  function login() {
+    const password = prompt("Entrez le mot de passe Chef :");
+    if(password === "Eray67960") {
+      alert("Connexion réussie ! Vous êtes maintenant Chef.");
+      isChef = true;
+    } else {
+      alert("Mot de passe incorrect !");
+    }
+  }
+
+  // 🔹 Envoyer un message
+  function sendMessage() {
+    const text = input.value.trim();
+    if(text === '') return;
+
+    let messageData = { 
+      sender: isChef ? "chef" : "user", 
+      text: text,
+      timestamp: Date.now()
+    };
+
+    // Messages automatiques pour Chef
+    if(isChef && text.toLowerCase() === "bonjour") {
+      messageData.text = "Bonjour, quel est votre problème ?";
+    }
+
+    db.ref('messages').push(messageData);
+    input.value = '';
+  }
+
+  // 🔹 Écouter les messages en temps réel
+  db.ref('messages').orderByChild("timestamp").on('child_added', function(snapshot) {
+    const msg = snapshot.val();
+    const msgDiv = document.createElement('div');
+    msgDiv.classList.add('message', msg.sender);
+    const date = new Date(msg.timestamp);
+    const time = date.getHours().toString().padStart(2,'0') + ':' + date.getMinutes().toString().padStart(2,'0');
+    msgDiv.textContent = (msg.sender === "chef" ? "Chef: " : "") + msg.text + " (" + time + ")";
+    chat.appendChild(msgDiv);
+    chat.scrollTop = chat.scrollHeight;
+  });
+
+  // 🔹 Envoyer avec touche Entrée
+  input.addEventListener('keypress', function(e) {
+    if(e.key === 'Enter') sendMessage();
+  });
+</script>
+</body>
+</html>
