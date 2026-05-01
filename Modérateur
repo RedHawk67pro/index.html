@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Team Red - Candidature Modérateur</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial;
+    background: linear-gradient(135deg, #0a0a0a, #1a001f);
+    color: white;
+    display: flex;
+    justify-content: center;
+    padding: 30px;
+}
+
+.container {
+    background: #111;
+    padding: 20px;
+    border-radius: 15px;
+    width: 550px;
+    box-shadow: 0 0 25px red;
+}
+
+h2 {
+    text-align: center;
+    color: red;
+}
+
+input, select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 8px;
+    border: none;
+    background: #222;
+    color: white;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 20px;
+    background: red;
+    border: none;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+button:disabled {
+    background: gray;
+    cursor: not-allowed;
+}
+
+#msg {
+    margin-top: 20px;
+    text-align: center;
+    color: #00ffcc;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>🛡️ Candidature Modérateur</h2>
+
+<form id="form">
+
+<input name="prenom" placeholder="Prénom *" required>
+<input name="nom" placeholder="Nom *" required>
+<input type="date" name="naissance" required>
+<input name="discord" placeholder="Discord *" required>
+<input name="fortnite" placeholder="Fortnite">
+<input name="roblox" placeholder="Roblox *" required>
+<input type="number" name="age" placeholder="Âge">
+
+<select name="q1"><option>Oui</option><option>Non</option></select>
+<select name="q2"><option>Oui</option><option>Non</option></select>
+<select name="q3"><option>Oui</option><option>Non</option></select>
+<select name="q4"><option>Oui</option><option>Non</option></select>
+<select name="q5"><option>Oui</option><option>Non</option></select>
+<select name="q6"><option>Oui</option><option>Non</option></select>
+
+<button id="btn" type="submit">🚀 Envoyer</button>
+
+</form>
+
+<div id="msg"></div>
+
+</div>
+
+<script>
+let sent = false;
+
+document.getElementById("form").addEventListener("submit", function(e){
+    e.preventDefault();
+
+    let btn = document.getElementById("btn");
+
+    // 🔒 BLOQUE DOUBLE ENVOI
+    if(sent) return;
+
+    sent = true;
+    btn.disabled = true;
+    btn.innerText = "Envoi en cours...";
+
+    let form = e.target;
+    let data = new FormData(form);
+
+    fetch("https://script.google.com/macros/s/AKfycbzE87LO_j8ZPTU_ckaldKGfw4mqscel4NRC_IHK-QGnnj9X_VZwFEvLfqscsQ96_kZsbw/exec", {
+        method: "POST",
+        body: data
+    })
+    .then(res => res.text())
+    .then(code => {
+
+        document.getElementById("msg").innerHTML =
+        "🎉 Candidature envoyée !<br><br>" +
+        "🔐 Code : <b>" + code + "</b><br><br>" +
+        "📩 Tu recevras une réponse bientôt.";
+
+    })
+    .catch(() => {
+        sent = false;
+        btn.disabled = false;
+        btn.innerText = "🚀 Envoyer";
+        alert("Erreur d'envoi");
+    });
+
+});
+</script>
+
+</body>
+</html>
